@@ -13,15 +13,7 @@ import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import com.example.speedspy.databinding.ActivityMainBinding
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import java.net.HttpURLConnection
-import java.net.URL
-import java.io.OutputStreamWriter
-
-import org.json.JSONObject
-import javax.net.ssl.HttpsURLConnection
+import okhttp3.*
 
 
 class MainActivity : AppCompatActivity() {
@@ -121,37 +113,31 @@ class MainActivity : AppCompatActivity() {
 
     class WebInterface(private val mContext: Context){
         var sentDataToServer = false;
-        fun showToast(message: String) {
+        private fun showToast(message: String) {
             Handler(Looper.getMainLooper()).post {
                 val toast = Toast.makeText(mContext, message, Toast.LENGTH_SHORT)
                 toast.show()
             }
         }
-        fun initiatePostRequest(data: String) {
+        private fun initiatePostRequest(data: String) {
         //The sentDataToServer variable prevents the need for try catch for they are very expensive
             if(sentDataToServer) return;
-            val urlObj = URL("https://api-life3.megafon.tj/tahir")
-            println("Sending $data to $urlObj")
-            val conn = urlObj.openConnection() as HttpsURLConnection
-            conn.requestMethod = "POST"
-            conn.doOutput = true
-            conn.setRequestProperty("Content-Type", "application/json")
-            val wr = OutputStreamWriter(conn.outputStream)
-            wr.write(data)
-            wr.flush()
-            // Handle the response
-            val responseCode = conn.responseCode
-            if (responseCode == HttpsURLConnection.HTTP_OK) {
-                val inputStream = conn.inputStream
-                // Read the response
-                showToast(inputStream.toString())
-            } else {
-                // Handle the error
-                showToast("Some Error occured! Response Code $responseCode")
-            }
-            conn.disconnect()
+            val client = OkHttpClient().newBuilder()
+                .build()
+            val mediaType: MediaType = MediaType.parse("application/json")!!
+            val body = RequestBody.create(
+                mediaType,
+                "{\n  \"downloadSpeed\": \"6.3Mbps\",\n  \"unloadedLatency\": \"94ms\",\n  \"loadedLatency\": \"180ms\",\n  \"uploadSpeed\": \"17Mbps\"\n}"
+            )
+            val request: Request = Request.Builder()
+                .url("https://api-life3.megafon.tj/tahir")
+                .method("POST", body)
+                .addHeader("Content-Type", "application/json")
+                .build()
+            val response: Response = client.newCall(request).execute()
+
+            showToast(response.body().toString())
         }
-        @OptIn(DelicateCoroutinesApi::class)
         @JavascriptInterface
         fun sendDataToServer(data: String) {
             initiatePostRequest(data)
