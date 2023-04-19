@@ -13,20 +13,20 @@ import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import com.example.speedspy.databinding.ActivityMainBinding
-import com.google.android.material.color.utilities.Score.score
-import io.ktor.client.*
-import io.ktor.client.engine.okhttp.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
-import io.ktor.server.util.*
-import io.ktor.util.*
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import java.net.HttpURLConnection
+import java.net.URL
+import java.io.OutputStreamWriter
+
+import org.json.JSONObject
+import javax.net.ssl.HttpsURLConnection
 
 
 class MainActivity : AppCompatActivity() {
+
+
 
 
     private lateinit var binding: ActivityMainBinding
@@ -48,6 +48,7 @@ class MainActivity : AppCompatActivity() {
             speedBtn.visibility = View.GONE
         }
     }
+
     @RequiresApi(Build.VERSION_CODES.O)
     private fun loadWebView (){
         webView = findViewById<WebView>(R.id.webView)
@@ -106,10 +107,10 @@ class MainActivity : AppCompatActivity() {
              
              function initiateStart(){
                 if(!valuesSentToServer){
-                    setTimeout(()=>{
-                    valuesSentToServer = start();
-                    initiateStart();
-                    },1000);
+                   setTimeout(()=>{
+                   valuesSentToServer = start();
+                   initiateStart();
+                   },1000);
                 }
              }
              initiateStart();
@@ -119,41 +120,44 @@ class MainActivity : AppCompatActivity() {
     }
 
     class WebInterface(private val mContext: Context){
-
+        var sentDataToServer = false;
         fun showToast(message: String) {
             Handler(Looper.getMainLooper()).post {
                 val toast = Toast.makeText(mContext, message, Toast.LENGTH_SHORT)
                 toast.show()
             }
         }
-        @OptIn(InternalAPI::class)
-        suspend fun initiatePostRequest(data: String = "nothing") {
-            try {
-
-                // Create an instance of HttpClient
-                val httpClient = HttpClient()
-                // Make the HTTP POST request
-                val response = httpClient.post("https://api-life3.megafon.tj/") {
-                    body = data
-                    contentType(ContentType.Application.Json)
-                    header(HttpHeaders.Accept, ContentType.Application.Json)
-                }
-
-                // Close the HttpClient
-                httpClient.close()
-                // Show success toast
-                showToast(response.toString());
-            } catch (e: Exception) {
-                showToast("Error! "+e.message);
+        fun initiatePostRequest(data: String) {
+        //The sentDataToServer variable prevents the need for try catch for they are very expensive
+            if(sentDataToServer) return;
+            val urlObj = URL("https://api-life3.megafon.tj/tahir")
+            println("Sending $data to $urlObj")
+            val conn = urlObj.openConnection() as HttpsURLConnection
+            conn.requestMethod = "POST"
+            conn.doOutput = true
+            conn.setRequestProperty("Content-Type", "application/json")
+            val wr = OutputStreamWriter(conn.outputStream)
+            wr.write(data)
+            wr.flush()
+            // Handle the response
+            val responseCode = conn.responseCode
+            if (responseCode == HttpsURLConnection.HTTP_OK) {
+                val inputStream = conn.inputStream
+                // Read the response
+                showToast(inputStream.toString())
+            } else {
+                // Handle the error
+                showToast("Some Error occured! Response Code $responseCode")
             }
-
+            conn.disconnect()
         }
         @OptIn(DelicateCoroutinesApi::class)
         @JavascriptInterface
         fun sendDataToServer(data: String) {
-            GlobalScope.launch {
-                initiatePostRequest(data)
-            }
+            initiatePostRequest(data)
+            sentDataToServer = true
         }
     }
 }
+
+
