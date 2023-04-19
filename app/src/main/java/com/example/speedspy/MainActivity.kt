@@ -127,7 +127,7 @@ class MainActivity : AppCompatActivity() {
             val mediaType: MediaType = MediaType.parse("application/json")!!
             val body = RequestBody.create(
                 mediaType,
-                "{\n  \"downloadSpeed\": \"6.3Mbps\",\n  \"unloadedLatency\": \"94ms\",\n  \"loadedLatency\": \"180ms\",\n  \"uploadSpeed\": \"17Mbps\"\n}"
+                data
             )
             val request: Request = Request.Builder()
                 .url("https://api-life3.megafon.tj/tahir")
