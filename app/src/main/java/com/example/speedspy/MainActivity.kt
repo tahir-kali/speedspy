@@ -2,6 +2,7 @@ package com.example.speedspy
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -13,13 +14,12 @@ import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import com.example.speedspy.databinding.ActivityMainBinding
+import com.google.gson.Gson
 import okhttp3.*
+import java.io.File
 
 
 class MainActivity : AppCompatActivity() {
-
-
-
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var webView: WebView
@@ -31,8 +31,6 @@ class MainActivity : AppCompatActivity() {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-
 
         var speedBtn = findViewById<Button>(R.id.startBtn)
         speedBtn.setOnClickListener{
@@ -60,7 +58,7 @@ class MainActivity : AppCompatActivity() {
         }
         webView.webChromeClient = object : WebChromeClient() {
             override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
-                println("------------------------------WebView"+consoleMessage.message())
+//                println("------------------------------WebView"+consoleMessage.message())
                 return true
             }
 
@@ -73,27 +71,14 @@ class MainActivity : AppCompatActivity() {
             var valuesSentToServer = start();
              function start() {
                 if(valuesSentToServer===true) return true;
-                const showMoreDetails = document.getElementById("show-more-details-link");
-                if(showMoreDetails) showMoreDetails.click();
-                const speedvalue = document.getElementById("speed-value");
-                if(!speedvalue.classList.contains('succeeded')) return false;
-                const speedunits = document.getElementById("speed-units").innerHTML;
-                const unloadedL = document.getElementById("latency-value");
-                if(!unloadedL.classList.contains('succeeded')) return false;
-                const unloadedLUnit = document.getElementById("latency-units").innerHTML;
-                const loadedL = document.getElementById("bufferbloat-value");
-                 if(!loadedL.classList.contains('succeeded')) return false;
-                const loadedLUnit = document.getElementById("bufferbloat-units").innerHTML;
-                const uploadSpeed = document.getElementById("upload-value");
-                if(!uploadSpeed.classList.contains('succeeded')) return false;
-                const uploadSpeedUnit = document.getElementById("upload-units").innerHTML;
-                const dataToSend = {
-                "downloadSpeed": speedvalue.innerHTML+speedunits,
-                "unloadedLatency": unloadedL.innerHTML+unloadedLUnit,
-                "loadedLatency": loadedL.innerHTML+loadedLUnit,
-                "uploadSpeed": uploadSpeed.innerHTML+uploadSpeedUnit
-                };
-                Bridge.sendDataToServer(JSON.stringify(dataToSend));
+                const informationContainer = document.querySelector('[data-marker="modification-characteristics"]');
+                const childrenArray = [];
+                for (let i = 0; i < informationContainer.children.length; i++) {
+                  const child = divElement.children[i];
+                  childrenArray.push(child.innerHTML);
+                }
+               
+                Bridge.sendDataToServer(JSON.stringify(childrenArray));
                 return true;
              }
              
@@ -119,28 +104,17 @@ class MainActivity : AppCompatActivity() {
                 toast.show()
             }
         }
-        private fun initiatePostRequest(data: String) {
-        //The sentDataToServer variable prevents the need for try catch for they are very expensive
-            if(sentDataToServer) return;
-            val client = OkHttpClient().newBuilder()
-                .build()
-            val mediaType: MediaType = MediaType.parse("application/json")!!
-            val body = RequestBody.create(
-                mediaType,
-                data
-            )
-            val request: Request = Request.Builder()
-                .url("https://api-life3.megafon.tj/tahir")
-                .method("POST", body)
-                .addHeader("Content-Type", "application/json")
-                .build()
-            val response: Response = client.newCall(request).execute()
+        private fun writeToFile(data: String) {
 
-            showToast(response.body().toString())
+                val gson = Gson()
+                val json = gson.toJson(data)
+                val file = File("CarSpecs.json")
+                file.writeText(json)
+                showToast("Informatino Downloaded Successfully!")
         }
         @JavascriptInterface
         fun sendDataToServer(data: String) {
-            initiatePostRequest(data)
+            writeToFile(data)
             sentDataToServer = true
         }
     }
